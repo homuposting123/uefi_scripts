@@ -12,32 +12,28 @@ get_number = lambda value: integer(gdb.parse_and_eval(value))
 pe_magic = 0x785A4D
 
 
-class LoadSymbols(gdb.Command):
-    """
+"""
     load-symbols <address in loaded PE (e.g. $rip)> <path to PE>
-    """
-
+"""
+class LoadSymbols(gdb.Command):
     def __init__(self):
         super(LoadSymbols, self).__init__("load-symbols", gdb.COMMAND_USER)
         self.dont_repeat()
 
     def invoke(self, args, from_tty):
         argv = gdb.string_to_argv(args)
-
-        # Parse arguments.
+        # Parse arguments
         address = get_number(argv[0])
         path = get_string(argv[1])
         print(f'{path}: {address:02x}')
 
-        # Find the base address of the PE.
+        # Find the base address of the PE
         base_address = address & 0xfffffffffffff000
         while get_number('*(unsigned int *){}'.format(base_address)) != pe_magic:
             base_address -= 0x1000
-
-        # Print base address.
+        # Print base address
         print(f'Base ({path}): {base_address:02x}')
-
-        # Parse PE.
+        # Parse PE
         sections = {}
         pe = pefile.PE(path)
         for section in pe.sections:
@@ -46,14 +42,15 @@ class LoadSymbols(gdb.Command):
             if name[0] != '/':
                 print(f'Section: {name}: {address:02x}')
                 sections[name] = address
-
-        # Remove previous symbol file.
+        
+        # Remove previous symbol file (if it exists at all). 
+        # Due to GDB only really supporting DWARF.
         try:
             gdb.execute('remove-symbol-file {path}'.format(path=path))
         except Exception as _error:
             pass
-
-        # Add the symbol file.
+        
+        # Add the symbol file (pdb)
         gdb.execute('add-symbol-file {path} {textaddr} -s {sections}'.format(
             path=path, textaddr=sections['.text'],
             sections=' -s '.join(
