@@ -50,7 +50,7 @@ class LoadSymbols(gdb.Command):
         except Exception as _error:
             pass
         
-        # Add the symbol file (pdb)
+        # Add the symbol file
         gdb.execute('add-symbol-file {path} {textaddr} -s {sections}'.format(
             path=path, textaddr=sections['.text'],
             sections=' -s '.join(
